@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>L2TerrorWaveGui</AssemblyName>
+    <RootNamespace>L2TerrorWaveGui</RootNamespace>
+    <Version>0.3.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**\*.cs" />
+    <EmbeddedResource Include="Vendor\TerrorWave\l2_terror_wave.exe"
+                      LogicalName="L2TerrorWaveGui.Vendor.l2_terror_wave.exe" />
+  </ItemGroup>
+
+</Project>

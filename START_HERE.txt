@@ -1,0 +1,18 @@
+L2 TERROR WAVE GUI - START HERE
+================================
+
+RUN FROM SOURCE
+1. Open PowerShell in this folder.
+2. Run:  dotnet run
+3. Pick your legally obtained Lufia II ROM, choose a mode/options, and click RANDOMIZE ROM.
+
+MAKE A STANDALONE WINDOWS EXE
+1. Run:  dotnet publish -p:PublishProfile=win-x64
+2. Open: publish\win-x64\L2TerrorWaveGui.exe
+
+The Terror Wave 3.16 engine is embedded; no separate randomizer or Python install is needed.
+The GUI supports vanilla NA, Fixxxer Deluxe, Frue, and 512-byte copier-headered ROMs.
+Each run creates a folder named after the seed beside the selected source ROM.
+That folder contains the randomized ROM, randomizer.log, events.txt, spoiler.txt, and run.json.
+
+Before distributing the bundled build, resolve the upstream licensing note in README.md.
