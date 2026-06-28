@@ -75,7 +75,7 @@ internal sealed class MainForm : Form
         var subtitle = new Label
         {
             AutoSize = true,
-            Text = "Lufia II randomizer control room  ·  GUI v0.3",
+            Text = "Lufia II randomizer control room  ·  v0.3 experimental",
             Font = new Font("Segoe UI", 9.5F),
             ForeColor = Color.FromArgb(190, 204, 224),
             Location = new Point(29, 53)
@@ -640,7 +640,7 @@ internal sealed class MainForm : Form
     private void ShowAbout()
     {
         const string message =
-            "Lufia II Terror Wave GUI 0.3\n\n" +
+            "Lufia II Terror Wave GUI 0.3 experimental preview\n\n" +
             "Embeds the unmodified Terror Wave 3.16 engine by Abyssonym.\n" +
             "Engine SHA-256: 769b041d1fad796b…\n\n" +
             "The upstream snapshot has no top-level license file; its randomtools dependency includes GPL-3.0. " +

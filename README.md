@@ -1,5 +1,8 @@
 # Lufia II Terror Wave GUI
 
+> [!IMPORTANT]
+> **Experimental, unofficial preview.** This build is being shared for review with Abyssonym, the creator of Terror Wave. It is not an official or endorsed Terror Wave release, and redistribution permission for the embedded engine is still being confirmed.
+
 A native Windows front end for Abyssonym's **Terror Wave 3.16** randomizer. The unmodified randomizer engine is embedded inside the application and extracted to the user's local application-data directory when first needed. Users do not need Python or a separate randomizer download.
 
 ## Features
@@ -87,3 +90,5 @@ Hashes are calculated after ignoring an optional 512-byte copier header.
 Terror Wave is by Abyssonym: <https://github.com/abyssonym/terrorwave>.
 
 The upstream repository and supplied snapshot do not contain a top-level license file, while the `randomtools` dependency includes GPL-3.0. See [`Vendor/TerrorWave/THIRD_PARTY_NOTICE.md`](Vendor/TerrorWave/THIRD_PARTY_NOTICE.md) and confirm redistribution terms with Abyssonym before releasing the bundled executable.
+
+The repository's MIT license covers the original GUI code in this project; it does not replace or override the rights and licensing of the embedded Terror Wave engine or its dependencies.

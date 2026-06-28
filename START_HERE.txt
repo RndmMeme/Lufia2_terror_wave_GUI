@@ -1,6 +1,8 @@
 L2 TERROR WAVE GUI - START HERE
 ================================
 
+EXPERIMENTAL UNOFFICIAL PREVIEW - NOT AN OFFICIAL TERROR WAVE RELEASE
+
 RUN FROM SOURCE
 1. Open PowerShell in this folder.
 2. Run:  dotnet run
