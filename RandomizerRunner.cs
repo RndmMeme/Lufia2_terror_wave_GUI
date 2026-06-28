@@ -4,7 +4,13 @@ namespace L2TerrorWaveGui;
 
 internal sealed class RandomizerRunner
 {
+    private readonly string? _engineRoot;
     private Process? _process;
+
+    public RandomizerRunner(string? engineRoot = null)
+    {
+        _engineRoot = engineRoot;
+    }
 
     public async Task<int> RunAsync(
         RandomizerOptions options,
@@ -12,10 +18,12 @@ internal sealed class RandomizerRunner
         CancellationToken cancellationToken)
     {
         var invocation = options.BuildInvocation();
+        writeOutput($"Preparing embedded Terror Wave {EmbeddedRandomizer.Version} engine…");
+        var executablePath = await EmbeddedRandomizer.GetExecutablePathAsync(_engineRoot, cancellationToken);
         var startInfo = new ProcessStartInfo
         {
-            FileName = options.ExecutablePath,
-            WorkingDirectory = Path.GetDirectoryName(options.ExecutablePath)!,
+            FileName = executablePath,
+            WorkingDirectory = Path.GetDirectoryName(executablePath)!,
             UseShellExecute = false,
             CreateNoWindow = true,
             RedirectStandardOutput = true,

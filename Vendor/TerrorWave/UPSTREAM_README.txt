@@ -1,0 +1,75 @@
+Lufia 2 Terror Wave Randomizer
+Version:    3
+Date:       April 1, 2023
+URL:        https://github.com/abyssonym/terrorwave/releases/latest/
+Contact:    https://twitter.com/abyssonym
+            https://discord.gg/Vzk2tsm92A
+
+--- HOW TO USE ---
+Running the randomizer:
+    Windows users may use the executable file, "l2_terror_wave.exe". Other users, please run "randomizer.py" using Python version 3.11 or above.
+
+Source rom file:
+    This randomizer requires a Lufia 2 (NA-SNES) rom with the MD5 hash listed below. The "Lufia 2 Fixxxer Deluxe" version is also supported; vanilla Lufia 2 roms will automatically be patched with the "Fixxxer Deluxe" patch.
+    MD5 - 6efc477d6203ed2b3b9133c1cd9e9c5d (NA)
+          026b649ed316448e038349e39a6fe579 (Fixxxer)
+          b58c76f2ac0b2aeb9b779e880d2bff18 (Frue)
+
+Seed value:
+    Input a seed value here, or leave it blank if you don't care.
+
+Flags:
+    c  Randomize characters.
+    i  Randomize items and equipment.
+    l  Randomize learnable spells.
+    m  Randomize monsters.
+    o  Randomize monster movements.
+    p  Randomize capsule monsters.
+    s  Randomize shops.
+    t  Randomize treasure chests.
+    v  Randomize nothing. (dummy flag to create vanilla seeds)
+    w  Create an open-world seed.
+
+Secret Codes:
+    Codes are entered in the "flags" section. The codes are:
+
+    OPEN WORLD RELATED
+    custom                  Use a custom seed for open-world mode
+    airship                 Start the game with the airship.
+    bossy                   Very random bosses (unbalanced even with scaling)
+    fourkeys                Open World, but there are only four keys
+
+    OPEN WORLD ENEMY SCALING
+    scale                   Scale enemy status in open-world mode
+    noscale                 Do not scale enemies in open-world mode
+    splitscale              Input custom values for scaling bosses and nonbosses.
+
+    CHEATS
+    easymodo                Every enemy dies in one hit
+    holiday                 Enemies run from the player
+
+    FOR FUN
+    monstermash             Randomize which monsters appear in dungeons.
+    nothingpersonnelkid     Extremely aggressive enemies.
+    anywhere                Equipment slots are randomized (breaks "Strongest")
+
+Randomness:
+    Terror Wave is the first Abyssonym randomizer to include a "randomness" option. This option controls how extreme the randomizations are. At 0.0, almost nothing will be randomized. At 1.0, enemies in the starting area will most likely have boss stats. I suggest leaving it at the default setting of 0.5 for your first run.
+    It is possible to use different settings for different flags. Type "custom" to enable more detailed randomness settings. This is useful, for example, when you want to find high-level gear without fighting high-level enemies.
+
+Output files:
+    The randomizer will output a new, randomized rom with the seed in the filename.
+
+Credits:
+    Artemis - Creator of various mods and assistance with several bugs and features
+    EveTheFeesh - Sprite updates for Artea and Lexis
+        http://twitch.tv/eve___
+    Relnqshd - Creator of "Fixxxer Deluxe" mod
+        http://www.romhacking.net/hacks/229/
+    Rainponcho - Creator of the Ancient Cave item fix patch
+
+Like this randomizer? Be sure to check out my other projects:
+    FF Tactics Rumble Chaos Crashdown Randomizer
+        https://github.com/abyssonym/fftrctcr/releases/latest
+    Breath of Fire 3 Vast Violence
+        https://github.com/abyssonym/vast_violence/releases/latest

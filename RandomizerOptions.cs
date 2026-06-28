@@ -21,7 +21,6 @@ internal enum ScalingMode
 
 internal sealed record RandomizerOptions
 {
-    public required string ExecutablePath { get; init; }
     public required string RomPath { get; init; }
     public required GameMode Mode { get; init; }
     public required IReadOnlyCollection<char> Flags { get; init; }

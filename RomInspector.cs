@@ -10,17 +10,24 @@ internal enum RomKind
     Unsupported
 }
 
-internal sealed record RomInspection(string Md5, RomKind Kind)
+internal sealed record RomInspection(string Md5, RomKind Kind, bool HadCopierHeader)
 {
     public bool IsSupported => Kind != RomKind.Unsupported;
 
-    public string Description => Kind switch
+    public string Description
     {
-        RomKind.Vanilla => "Supported vanilla North American ROM",
-        RomKind.Fixxxer => "Supported Fixxxer Deluxe ROM",
-        RomKind.Frue => "Supported Frue ROM",
-        _ => "Hash is not recognized by Terror Wave v3"
-    };
+        get
+        {
+            var description = Kind switch
+            {
+                RomKind.Vanilla => "Supported vanilla North American ROM",
+                RomKind.Fixxxer => "Supported Fixxxer Deluxe ROM",
+                RomKind.Frue => "Supported Frue ROM",
+                _ => "Hash is not recognized by Terror Wave v3"
+            };
+            return HadCopierHeader ? $"{description} · copier header detected" : description;
+        }
+    }
 }
 
 internal static class RomInspector
@@ -37,9 +44,16 @@ internal static class RomInspector
         await using var stream = new FileStream(
             path, FileMode.Open, FileAccess.Read, FileShare.Read,
             bufferSize: 1024 * 128, useAsync: true);
+        var dataOffset = GetRomDataOffset(stream.Length);
+        stream.Position = dataOffset;
         using var md5 = MD5.Create();
         var hash = await md5.ComputeHashAsync(stream, cancellationToken);
         var text = Convert.ToHexString(hash).ToLowerInvariant();
-        return new RomInspection(text, KnownHashes.GetValueOrDefault(text, RomKind.Unsupported));
+        return new RomInspection(
+            text,
+            KnownHashes.GetValueOrDefault(text, RomKind.Unsupported),
+            dataOffset == 512);
     }
+
+    internal static int GetRomDataOffset(long fileLength) => fileLength % 0x8000 == 512 ? 512 : 0;
 }

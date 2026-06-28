@@ -6,8 +6,8 @@ namespace L2TerrorWaveGui;
 internal sealed class MainForm : Form
 {
     private readonly TextBox _romPath = new();
-    private readonly TextBox _exePath = new();
     private readonly Label _romStatus = new();
+    private readonly Label _engineStatus = new();
     private readonly ComboBox _mode = new();
     private readonly Label _modeDescription = new();
     private readonly TextBox _seed = new();
@@ -74,19 +74,23 @@ internal sealed class MainForm : Form
         var subtitle = new Label
         {
             AutoSize = true,
-            Text = "Lufia II randomizer control room  ·  GUI v0.1",
+            Text = "Lufia II randomizer control room  ·  GUI v0.2",
             Font = new Font("Segoe UI", 9.5F),
             ForeColor = Color.FromArgb(190, 204, 224),
             Location = new Point(29, 53)
         };
-        var version = new Label
+        var version = new LinkLabel
         {
             AutoSize = true,
-            Text = "Built for Terror Wave v3",
-            ForeColor = Theme.Gold,
+            Text = "Terror Wave 3.16 by Abyssonym · embedded",
+            LinkColor = Theme.Gold,
+            ActiveLinkColor = Color.White,
+            VisitedLinkColor = Theme.Gold,
+            LinkBehavior = LinkBehavior.HoverUnderline,
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
             Location = new Point(header.Width - 175, 35)
         };
+        version.LinkClicked += (_, _) => ShowAbout();
         header.Resize += (_, _) => version.Left = header.ClientSize.Width - version.Width - 28;
         header.Controls.AddRange([title, subtitle, version]);
         return header;
@@ -156,7 +160,15 @@ internal sealed class MainForm : Form
         _romStatus.TextAlign = ContentAlignment.MiddleLeft;
         grid.Controls.Add(_romStatus, 1, 1);
         grid.SetColumnSpan(_romStatus, 2);
-        AddPathRow(grid, 2, "Randomizer", _exePath, "Browse…", BrowseExecutable);
+        _engineStatus.Text = EmbeddedRandomizer.IsEmbedded
+            ? $"Embedded Terror Wave {EmbeddedRandomizer.Version} · verified and extracted on demand"
+            : "Embedded randomizer engine is missing";
+        _engineStatus.ForeColor = EmbeddedRandomizer.IsEmbedded ? Theme.Success : Theme.Danger;
+        _engineStatus.Dock = DockStyle.Fill;
+        _engineStatus.TextAlign = ContentAlignment.MiddleLeft;
+        grid.Controls.Add(NewFieldLabel("Engine"), 0, 2);
+        grid.Controls.Add(_engineStatus, 1, 2);
+        grid.SetColumnSpan(_engineStatus, 2);
         body.Controls.Add(grid);
         return body;
     }
@@ -361,7 +373,6 @@ internal sealed class MainForm : Form
         _mode.SelectedIndex = 0;
         _scaling.Items.AddRange(["Automatic (recommended)", "Force scaling", "No scaling", "Split boss / nonboss"]);
         _scaling.SelectedIndex = 0;
-        _exePath.Text = FindRandomizerExecutable() ?? string.Empty;
         UpdateSliderLabels();
         UpdateModeControls();
         UpdateScalingControls();
@@ -471,9 +482,8 @@ internal sealed class MainForm : Form
         options = null;
         error = string.Empty;
         var rom = _romPath.Text.Trim();
-        var exe = _exePath.Text.Trim();
         if (!File.Exists(rom)) error = "Select a Lufia II ROM file first.";
-        else if (!File.Exists(exe)) error = "Select the l2_terror_wave.exe randomizer.";
+        else if (!EmbeddedRandomizer.IsEmbedded) error = "This build does not contain the Terror Wave engine.";
         else if (_seed.TextLength > 0 && (!long.TryParse(_seed.Text, out var seed) || seed < 0)) error = "The seed must be a positive whole number or blank.";
         else if (SelectedMode != GameMode.Vanilla && !_flagBoxes.Values.Any(box => box.Checked)) error = "Choose at least one randomization category.";
         else if (SelectedMode == GameMode.CustomOpenWorld && !File.Exists(_customSeedPath.Text.Trim())) error = "Choose a custom Open World seed file.";
@@ -481,7 +491,6 @@ internal sealed class MainForm : Form
 
         options = new RandomizerOptions
         {
-            ExecutablePath = exe,
             RomPath = rom,
             Mode = SelectedMode,
             Flags = _flagBoxes.Where(pair => pair.Value.Checked).Select(pair => pair.Key).ToArray(),
@@ -599,17 +608,6 @@ internal sealed class MainForm : Form
         if (dialog.ShowDialog(this) == DialogResult.OK) _romPath.Text = dialog.FileName;
     }
 
-    private void BrowseExecutable()
-    {
-        using var dialog = new OpenFileDialog
-        {
-            Title = "Select Terror Wave",
-            Filter = "Terror Wave (l2_terror_wave.exe)|l2_terror_wave.exe|Executables (*.exe)|*.exe",
-            CheckFileExists = true
-        };
-        if (dialog.ShowDialog(this) == DialogResult.OK) _exePath.Text = dialog.FileName;
-    }
-
     private void BrowseCustomSeed()
     {
         using var dialog = new OpenFileDialog
@@ -628,29 +626,31 @@ internal sealed class MainForm : Form
         Process.Start(new ProcessStartInfo("explorer.exe", directory) { UseShellExecute = true });
     }
 
+    private void ShowAbout()
+    {
+        const string message =
+            "Lufia II Terror Wave GUI 0.2\n\n" +
+            "Embeds the unmodified Terror Wave 3.16 engine by Abyssonym.\n" +
+            "Engine SHA-256: 769b041d1fad796b…\n\n" +
+            "The upstream snapshot has no top-level license file; its randomtools dependency includes GPL-3.0. " +
+            "Confirm redistribution terms before releasing this bundle.\n\n" +
+            "Open the upstream project page?";
+        var result = MessageBox.Show(this, message, "About and third-party notice", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+        if (result == DialogResult.Yes)
+        {
+            Process.Start(new ProcessStartInfo("https://github.com/abyssonym/terrorwave") { UseShellExecute = true });
+        }
+    }
+
     private string? GetOutputDirectory()
     {
         if (!string.IsNullOrWhiteSpace(_lastOutputPath))
         {
             var output = _lastOutputPath;
-            if (!Path.IsPathRooted(output)) output = Path.Combine(Path.GetDirectoryName(_exePath.Text.Trim())!, output);
+            if (!Path.IsPathRooted(output)) output = Path.Combine(Path.GetDirectoryName(_romPath.Text.Trim())!, output);
             return Path.GetDirectoryName(output);
         }
         return Path.GetDirectoryName(_romPath.Text.Trim());
-    }
-
-    private static string? FindRandomizerExecutable()
-    {
-        foreach (var start in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })
-        {
-            var current = new DirectoryInfo(start);
-            for (var level = 0; current is not null && level < 10; level++, current = current.Parent)
-            {
-                var candidate = Path.Combine(current.FullName, "l2_terror_wave_windows", "l2_terror_wave.exe");
-                if (File.Exists(candidate)) return candidate;
-            }
-        }
-        return null;
     }
 
     private GameMode SelectedMode => (GameMode)Math.Max(0, _mode.SelectedIndex);

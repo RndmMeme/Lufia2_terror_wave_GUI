@@ -1,16 +1,16 @@
 # Lufia II Terror Wave GUI
 
-A native Windows front end for Abyssonym's **Terror Wave v3** randomizer. It validates supported ROM hashes, exposes the real randomizer flags and special codes, and runs the existing Windows executable without modifying it.
+A native Windows front end for Abyssonym's **Terror Wave 3.16** randomizer. The unmodified randomizer engine is embedded inside the application and extracted to the user's local application-data directory when first needed. Users do not need Python or a separate randomizer download.
 
 ## Features
 
-- ROM and randomizer path pickers with automatic sibling-folder discovery
+- Single-file, self-contained Windows release
+- Embedded Terror Wave 3.16 engine with SHA-256 integrity validation
 - MD5 validation for vanilla NA, Fixxxer Deluxe, and Frue ROMs
+- Automatic support for 512-byte SNES copier headers
 - Standard, Open World, Four Keys, Custom Open World, and vanilla-patch modes
-- All eight randomization categories
-- Randomness and difficulty controls
-- Automatic, forced, disabled, and split enemy scaling
-- Supported fun/cheat switches from the v3 source
+- All eight randomization categories and supported v3 special codes
+- Randomness, difficulty, and Open World enemy-scaling controls
 - Live process log, cancellation, and output-folder shortcut
 
 ## Run from source
@@ -21,34 +21,54 @@ Requirements: Windows and the .NET 8 SDK.
 dotnet run
 ```
 
-The app searches parent directories for:
+The embedded engine is extracted on demand beneath:
 
 ```text
-l2_terror_wave_windows\l2_terror_wave.exe
+%LOCALAPPDATA%\L2TerrorWaveGui\Engines
 ```
 
-You can always select the executable manually. Generated ROMs are written next to the source ROM by Terror Wave itself.
+Generated ROMs are written next to the selected source ROM by Terror Wave. ROM data is never bundled with the application.
 
-## Build a standalone folder
-
-Framework-dependent (small, requires .NET 8 Desktop Runtime):
+## Publish the standalone application
 
 ```powershell
-dotnet publish -c Release -r win-x64 --self-contained false -o publish
+dotnet publish -p:PublishProfile=win-x64
 ```
 
-Run the dependency-free command-building smoke tests with:
+The resulting standalone executable is written to:
+
+```text
+publish\win-x64\L2TerrorWaveGui.exe
+```
+
+It includes the .NET 8 Windows runtime and the Terror Wave engine. No separate installation is required.
+
+## Verification
+
+Run the dependency-free smoke tests:
 
 ```powershell
 dotnet run --project tests\L2TerrorWaveGui.SmokeTests -c Release
 ```
 
-The GUI deliberately does not copy or redistribute the randomizer executable or copyrighted ROM data. Project details for Terror Wave are at <https://github.com/abyssonym/terrorwave>.
+An optional end-to-end test accepts a legally obtained ROM path. It copies the ROM into ignored temporary artifacts, runs both vanilla-patch and all-category seeds, validates the outputs, and removes the copies:
+
+```powershell
+dotnet run --project tests\L2TerrorWaveGui.SmokeTests -c Release -- --integration-rom "C:\path\to\Lufia II.smc"
+```
 
 ## Supported source ROM hashes
+
+Hashes are calculated after ignoring an optional 512-byte copier header.
 
 | ROM | MD5 |
 |---|---|
 | Lufia II NA (vanilla) | `6efc477d6203ed2b3b9133c1cd9e9c5d` |
 | Fixxxer Deluxe | `026b649ed316448e038349e39a6fe579` |
 | Frue | `b58c76f2ac0b2aeb9b779e880d2bff18` |
+
+## Upstream and redistribution
+
+Terror Wave is by Abyssonym: <https://github.com/abyssonym/terrorwave>.
+
+The upstream repository and supplied snapshot do not contain a top-level license file, while the `randomtools` dependency includes GPL-3.0. See [`Vendor/TerrorWave/THIRD_PARTY_NOTICE.md`](Vendor/TerrorWave/THIRD_PARTY_NOTICE.md) and confirm redistribution terms with Abyssonym before releasing the bundled executable.

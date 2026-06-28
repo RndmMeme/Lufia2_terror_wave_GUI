@@ -8,3 +8,4 @@ obj/
 *.fig
 *.zip
 publish/
+artifacts/
