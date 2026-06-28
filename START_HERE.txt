@@ -1,0 +1,13 @@
+L2 TERROR WAVE GUI - START HERE
+================================
+
+1. Keep the existing l2_terror_wave_windows folder beside this project.
+2. Open PowerShell in this folder.
+3. Run:  dotnet run
+4. Pick your legally obtained Lufia II ROM, choose a mode/options, and click RANDOMIZE ROM.
+
+The GUI recognizes the vanilla NA, Fixxxer Deluxe, and Frue ROM hashes listed in README.md.
+Terror Wave writes the generated ROM beside the source ROM.
+
+To make a Release build:
+dotnet publish -c Release -r win-x64 --self-contained false -o publish
