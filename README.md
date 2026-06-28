@@ -11,7 +11,9 @@ A native Windows front end for Abyssonym's **Terror Wave 3.16** randomizer. The 
 - Standard, Open World, Four Keys, Custom Open World, and vanilla-patch modes
 - All eight randomization categories and supported v3 special codes
 - Randomness, difficulty, and Open World enemy-scaling controls
-- Live process log, cancellation, and output-folder shortcut
+- One organized result folder per seed, created beside the source ROM
+- Live process log, cancellation, and seed-folder shortcut
+- Path-independent deterministic output for identical settings and seeds
 
 ## Run from source
 
@@ -27,7 +29,20 @@ The embedded engine is extracted on demand beneath:
 %LOCALAPPDATA%\L2TerrorWaveGui\Engines
 ```
 
-Generated ROMs are written next to the selected source ROM by Terror Wave. ROM data is never bundled with the application.
+Every run creates a folder named after its seed beside the selected source ROM:
+
+```text
+<source ROM folder>\<seed>\
+  <ROM name>.<flags>.<seed>.smc
+  randomizer.log
+  events.txt
+  spoiler.txt
+  run.json
+```
+
+Open World modes preserve Terror Wave's item/progression spoiler as `spoiler.txt`. Other modes receive a clearly marked seed summary because Terror Wave does not generate item-level spoilers for them. `run.json` records settings, engine details, source/output hashes, timestamps, and completion status.
+
+The source ROM is copied temporarily into the seed folder while the engine runs and removed afterward. ROM data is never bundled with the application.
 
 ## Publish the standalone application
 
@@ -51,7 +66,7 @@ Run the dependency-free smoke tests:
 dotnet run --project tests\L2TerrorWaveGui.SmokeTests -c Release
 ```
 
-An optional end-to-end test accepts a legally obtained ROM path. It copies the ROM into ignored temporary artifacts, runs both vanilla-patch and all-category seeds, validates the outputs, and removes the copies:
+An optional end-to-end test accepts a legally obtained ROM path. It verifies vanilla-patch, all-category, deterministic repeat, and Open World-spoiler runs, validates the seed-folder contents, and removes its copies:
 
 ```powershell
 dotnet run --project tests\L2TerrorWaveGui.SmokeTests -c Release -- --integration-rom "C:\path\to\Lufia II.smc"

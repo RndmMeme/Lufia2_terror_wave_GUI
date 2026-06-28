@@ -1,4 +1,5 @@
 using L2TerrorWaveGui;
+using System.Security.Cryptography;
 
 var cases = new (string Name, Action Test)[]
 {
@@ -129,7 +130,6 @@ static async Task RunRomIntegrationAsync(string sourceRomPath)
     if (Directory.Exists(artifactRoot)) Directory.Delete(artifactRoot, recursive: true);
     Directory.CreateDirectory(artifactRoot);
     var inputPath = Path.Combine(artifactRoot, "vanilla-input.smc");
-    var outputPath = Path.Combine(artifactRoot, "vanilla-input.v.246813579.smc");
     File.Copy(sourceRomPath, inputPath);
 
     try
@@ -142,20 +142,25 @@ static async Task RunRomIntegrationAsync(string sourceRomPath)
             Mode = GameMode.Vanilla,
             Seed = "246813579"
         };
-        var exitCode = await runner.RunAsync(options, line =>
+        var result = await runner.RunAsync(options, line =>
         {
             log.Add(line);
             Console.WriteLine(line);
         }, CancellationToken.None);
 
-        Equal(0, exitCode);
+        var outputPath = Path.Combine(result.SeedDirectory, "vanilla-input.v.246813579.smc");
+        Equal(0, result.ExitCode);
+        Equal(true, result.Succeeded);
         Equal(true, File.Exists(outputPath));
         Equal(0x400000L, new FileInfo(outputPath).Length);
+        AssertSeedArtifacts(result, "246813579");
+        Equal(true, (await File.ReadAllTextAsync(result.SpoilerPath)).Contains(
+            "only emits item/progression spoilers for Open World modes", StringComparison.Ordinal));
+        Equal(false, File.Exists(Path.Combine(result.SeedDirectory, "source.smc")));
         Equal(true, log.Any(line => line.Contains("Randomization completed successfully.", StringComparison.Ordinal)));
         Console.WriteLine("PASS  Embedded engine randomized the supplied vanilla ROM end to end");
 
         log.Clear();
-        var randomizedOutputPath = Path.Combine(artifactRoot, "vanilla-input.cilmopst.246813580.smc");
         var randomizedOptions = BaseOptions() with
         {
             RomPath = inputPath,
@@ -163,20 +168,81 @@ static async Task RunRomIntegrationAsync(string sourceRomPath)
             Flags = RandomizerFlags.All.Select(option => option.Flag).ToArray(),
             Seed = "246813580"
         };
-        exitCode = await runner.RunAsync(randomizedOptions, line =>
+        result = await runner.RunAsync(randomizedOptions, line =>
         {
             log.Add(line);
             Console.WriteLine(line);
         }, CancellationToken.None);
 
-        Equal(0, exitCode);
+        var randomizedOutputPath = Path.Combine(result.SeedDirectory, "vanilla-input.cilmopst.246813580.smc");
+        Equal(0, result.ExitCode);
+        Equal(true, result.Succeeded);
         Equal(true, File.Exists(randomizedOutputPath));
         Equal(0x400000L, new FileInfo(randomizedOutputPath).Length);
+        AssertSeedArtifacts(result, "246813580");
+        Equal(true, (await File.ReadAllTextAsync(result.SpoilerPath)).Contains(
+            "only emits item/progression spoilers for Open World modes", StringComparison.Ordinal));
+        Equal(false, File.Exists(Path.Combine(result.SeedDirectory, "source.smc")));
         Equal(true, log.Any(line => line.Contains("Randomization completed successfully.", StringComparison.Ordinal)));
         Console.WriteLine("PASS  Embedded engine completed an all-category standard randomization");
+
+        var firstStandardHash = await FileSha256Async(randomizedOutputPath);
+        var replicaSourceDirectory = Path.Combine(artifactRoot, "replica");
+        Directory.CreateDirectory(replicaSourceDirectory);
+        var replicaInputPath = Path.Combine(replicaSourceDirectory, "vanilla-input.smc");
+        File.Copy(inputPath, replicaInputPath);
+        var replicaResult = await runner.RunAsync(
+            randomizedOptions with { RomPath = replicaInputPath },
+            _ => { },
+            CancellationToken.None);
+        var replicaOutputPath = Path.Combine(replicaResult.SeedDirectory, "vanilla-input.cilmopst.246813580.smc");
+        Equal(firstStandardHash, await FileSha256Async(replicaOutputPath));
+        Console.WriteLine("PASS  Same seed is byte-identical from a different source folder");
+
+        log.Clear();
+        var openWorldOptions = BaseOptions() with
+        {
+            RomPath = inputPath,
+            Mode = GameMode.OpenWorld,
+            Flags = RandomizerFlags.All.Select(option => option.Flag).ToArray(),
+            Seed = "246813581"
+        };
+        result = await runner.RunAsync(openWorldOptions, line =>
+        {
+            log.Add(line);
+            Console.WriteLine(line);
+        }, CancellationToken.None);
+
+        var openWorldOutputPath = Path.Combine(result.SeedDirectory, "vanilla-input.cilmopstw.246813581.smc");
+        Equal(0, result.ExitCode);
+        Equal(true, result.Succeeded);
+        Equal(true, File.Exists(openWorldOutputPath));
+        AssertSeedArtifacts(result, "246813581");
+        Equal(true, (await File.ReadAllTextAsync(result.SpoilerPath)).StartsWith("LUFIA 2 CRESTING WAVE", StringComparison.Ordinal));
+        Equal(true, (await File.ReadAllTextAsync(Path.Combine(result.SeedDirectory, "run.json"))).Contains(
+            "Terror Wave Open World spoiler", StringComparison.Ordinal));
+        Console.WriteLine("PASS  Open World seed preserved Terror Wave's progression spoiler");
     }
     finally
     {
         if (Directory.Exists(artifactRoot)) Directory.Delete(artifactRoot, recursive: true);
     }
+}
+
+static void AssertSeedArtifacts(RandomizerRunResult result, string expectedSeed)
+{
+    Equal(expectedSeed, Path.GetFileName(result.SeedDirectory));
+    Equal(true, File.Exists(result.LogPath));
+    Equal(true, File.Exists(result.SpoilerPath));
+    Equal(true, File.Exists(Path.Combine(result.SeedDirectory, "events.txt")));
+    Equal(true, File.Exists(Path.Combine(result.SeedDirectory, "run.json")));
+    Equal(true, new FileInfo(result.LogPath).Length > 0);
+    Equal(true, new FileInfo(result.SpoilerPath).Length > 0);
+    Equal(true, new FileInfo(Path.Combine(result.SeedDirectory, "events.txt")).Length > 0);
+}
+
+static async Task<string> FileSha256Async(string path)
+{
+    await using var stream = File.OpenRead(path);
+    return Convert.ToHexString(await SHA256.HashDataAsync(stream));
 }

@@ -41,6 +41,7 @@ internal sealed class MainForm : Form
     private readonly RandomizerRunner _runner = new();
     private CancellationTokenSource? _runCancellation;
     private string? _lastOutputPath;
+    private string? _lastOutputDirectory;
     private int _romInspectionVersion;
 
     public MainForm()
@@ -74,7 +75,7 @@ internal sealed class MainForm : Form
         var subtitle = new Label
         {
             AutoSize = true,
-            Text = "Lufia II randomizer control room  ·  GUI v0.2",
+            Text = "Lufia II randomizer control room  ·  GUI v0.3",
             Font = new Font("Segoe UI", 9.5F),
             ForeColor = Color.FromArgb(190, 204, 224),
             Location = new Point(29, 53)
@@ -194,11 +195,11 @@ internal sealed class MainForm : Form
         grid.SetColumnSpan(_modeDescription, 2);
 
         _seed.Dock = DockStyle.Fill;
-        _seed.PlaceholderText = "Blank = random";
-        grid.Controls.Add(NewFieldLabel("Seed"), 0, 2);
+        _seed.PlaceholderText = "Blank = generated automatically";
+        grid.Controls.Add(NewFieldLabel("Seed / folder"), 0, 2);
         grid.Controls.Add(_seed, 1, 2);
         var seedButton = NewSecondaryButton("New seed");
-        seedButton.Click += (_, _) => _seed.Text = Random.Shared.NextInt64(0, 10_000_000_000).ToString();
+        seedButton.Click += (_, _) => _seed.Text = GenerateSeed();
         grid.Controls.Add(seedButton, 2, 2);
         body.Controls.Add(grid);
         return body;
@@ -342,7 +343,7 @@ internal sealed class MainForm : Form
         _cancelButton.Enabled = false;
         _cancelButton.FlatStyle = FlatStyle.Flat;
 
-        _openOutputButton.Text = "Open output folder";
+        _openOutputButton.Text = "Open seed folder";
         _openOutputButton.Size = new Size(132, 43);
         _openOutputButton.Dock = DockStyle.Right;
         _openOutputButton.Enabled = false;
@@ -425,6 +426,7 @@ internal sealed class MainForm : Form
 
     private async Task RunRandomizerAsync()
     {
+        if (string.IsNullOrWhiteSpace(_seed.Text)) _seed.Text = GenerateSeed();
         if (!TryCreateOptions(out var options, out var error))
         {
             MessageBox.Show(this, error, "Cannot start", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -434,6 +436,9 @@ internal sealed class MainForm : Form
         _runCancellation = new CancellationTokenSource();
         SetRunning(true);
         _lastOutputPath = null;
+        _lastOutputDirectory = Path.Combine(
+            Path.GetDirectoryName(Path.GetFullPath(options!.RomPath))!,
+            options.Seed);
         _openOutputButton.Enabled = false;
         _log.Clear();
         AppendLog("Starting Terror Wave…");
@@ -441,19 +446,22 @@ internal sealed class MainForm : Form
 
         try
         {
-            var exitCode = await _runner.RunAsync(options!, AppendLog, _runCancellation.Token);
-            if (exitCode == 0)
+            var result = await _runner.RunAsync(options, AppendLog, _runCancellation.Token);
+            _lastOutputPath = result.OutputRomPath;
+            _lastOutputDirectory = result.SeedDirectory;
+            if (result.Succeeded)
             {
-                _runStatus.Text = "Randomization finished";
+                _runStatus.Text = $"Seed {options.Seed} folder created";
                 _runStatus.ForeColor = Theme.Success;
-                AppendLog("Finished successfully.");
+                AppendLog($"Finished successfully. Results: {result.SeedDirectory}");
                 _openOutputButton.Enabled = Directory.Exists(GetOutputDirectory());
             }
             else
             {
-                _runStatus.Text = $"Terror Wave exited with code {exitCode}";
+                _runStatus.Text = $"Terror Wave failed (exit code {result.ExitCode})";
                 _runStatus.ForeColor = Theme.Danger;
-                AppendLog($"Process exited with code {exitCode}. Check the messages above.");
+                AppendLog("No valid randomized ROM was produced. Check randomizer.log in the seed folder.");
+                _openOutputButton.Enabled = Directory.Exists(GetOutputDirectory());
             }
         }
         catch (OperationCanceledException)
@@ -461,12 +469,14 @@ internal sealed class MainForm : Form
             _runStatus.Text = "Cancelled";
             _runStatus.ForeColor = Theme.Muted;
             AppendLog("Run cancelled.");
+            _openOutputButton.Enabled = Directory.Exists(GetOutputDirectory());
         }
         catch (Exception exception)
         {
             _runStatus.Text = "Could not run Terror Wave";
             _runStatus.ForeColor = Theme.Danger;
             AppendLog(exception.ToString());
+            _openOutputButton.Enabled = Directory.Exists(GetOutputDirectory());
             MessageBox.Show(this, exception.Message, "Randomizer error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         finally
@@ -484,7 +494,8 @@ internal sealed class MainForm : Form
         var rom = _romPath.Text.Trim();
         if (!File.Exists(rom)) error = "Select a Lufia II ROM file first.";
         else if (!EmbeddedRandomizer.IsEmbedded) error = "This build does not contain the Terror Wave engine.";
-        else if (_seed.TextLength > 0 && (!long.TryParse(_seed.Text, out var seed) || seed < 0)) error = "The seed must be a positive whole number or blank.";
+        else if (!long.TryParse(_seed.Text, out var seed) || seed < 0 || seed >= 10_000_000_000) error = "The seed must be a whole number from 0 to 9,999,999,999.";
+        else if (Directory.Exists(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(rom))!, _seed.Text.Trim()))) error = "A folder for this seed already exists beside the source ROM. Choose another seed or move that folder first.";
         else if (SelectedMode != GameMode.Vanilla && !_flagBoxes.Values.Any(box => box.Checked)) error = "Choose at least one randomization category.";
         else if (SelectedMode == GameMode.CustomOpenWorld && !File.Exists(_customSeedPath.Text.Trim())) error = "Choose a custom Open World seed file.";
         if (error.Length > 0) return false;
@@ -629,7 +640,7 @@ internal sealed class MainForm : Form
     private void ShowAbout()
     {
         const string message =
-            "Lufia II Terror Wave GUI 0.2\n\n" +
+            "Lufia II Terror Wave GUI 0.3\n\n" +
             "Embeds the unmodified Terror Wave 3.16 engine by Abyssonym.\n" +
             "Engine SHA-256: 769b041d1fad796b…\n\n" +
             "The upstream snapshot has no top-level license file; its randomtools dependency includes GPL-3.0. " +
@@ -644,6 +655,7 @@ internal sealed class MainForm : Form
 
     private string? GetOutputDirectory()
     {
+        if (!string.IsNullOrWhiteSpace(_lastOutputDirectory)) return _lastOutputDirectory;
         if (!string.IsNullOrWhiteSpace(_lastOutputPath))
         {
             var output = _lastOutputPath;
@@ -652,6 +664,8 @@ internal sealed class MainForm : Form
         }
         return Path.GetDirectoryName(_romPath.Text.Trim());
     }
+
+    private static string GenerateSeed() => Random.Shared.NextInt64(0, 10_000_000_000).ToString();
 
     private GameMode SelectedMode => (GameMode)Math.Max(0, _mode.SelectedIndex);
     private ScalingMode SelectedScaling => (ScalingMode)Math.Max(0, _scaling.SelectedIndex);

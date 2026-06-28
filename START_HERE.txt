@@ -12,6 +12,7 @@ MAKE A STANDALONE WINDOWS EXE
 
 The Terror Wave 3.16 engine is embedded; no separate randomizer or Python install is needed.
 The GUI supports vanilla NA, Fixxxer Deluxe, Frue, and 512-byte copier-headered ROMs.
-Generated ROMs are written beside the selected source ROM.
+Each run creates a folder named after the seed beside the selected source ROM.
+That folder contains the randomized ROM, randomizer.log, events.txt, spoiler.txt, and run.json.
 
 Before distributing the bundled build, resolve the upstream licensing note in README.md.

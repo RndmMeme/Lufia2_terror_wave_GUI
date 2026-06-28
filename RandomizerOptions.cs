@@ -40,7 +40,7 @@ internal sealed record RandomizerOptions
     public bool EnemiesRunAway { get; init; }
     public bool NoCapsuleMaster { get; init; }
 
-    public RandomizerInvocation BuildInvocation()
+    public string BuildFlagString()
     {
         var flags = Mode == GameMode.Vanilla
             ? "v"
@@ -73,6 +73,14 @@ internal sealed record RandomizerOptions
             ScalingMode.SplitScaling => "splitscale",
             _ => string.Empty
         };
+
+        return flags;
+    }
+
+    public RandomizerInvocation BuildInvocation()
+    {
+        var flags = BuildFlagString();
+        var isOpenWorld = Mode is GameMode.OpenWorld or GameMode.FourKeys or GameMode.CustomOpenWorld;
 
         var standardInput = new List<string>();
         if (isOpenWorld && Scaling == ScalingMode.SplitScaling)
